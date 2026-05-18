@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.VidhiJav/myrsu-mcp",
+  "description": "Single-company concentration & exposure analysis for tech workers with RSU comp. Lets your AI assistant answer 'how risky is my company stock concentration?' with real numbers — Risk Score, Wealth-at-Risk, historical drawdowns, and prioritized action items.",
+  "repository": {
+    "url": "https://github.com/VidhiJav/myrsu-mcp",
+    "source": "github"
+  },
+  "version": "0.3.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "myrsu-mcp",
+      "version": "0.3.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "remotes": [
+    {
+      "transport": {
+        "type": "streamable-http",
+        "url": "https://myrsu-mcp.vidhidev.workers.dev/mcp"
+      }
+    }
+  ]
+}

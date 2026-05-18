@@ -1,6 +1,7 @@
 {
   "name": "myrsu-mcp",
-  "version": "0.3.0",
+  "version": "0.3.1",
+  "mcpName": "io.github.VidhiJav/myrsu-mcp",
   "description": "MyRSU MCP server — concentration & exposure analysis for tech workers with RSU comp. Lets Claude / Cursor / Continue answer 'how risky is my company stock concentration?' with real numbers.",
   "type": "module",
   "main": "dist/index.js",
