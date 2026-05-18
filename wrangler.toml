@@ -1,0 +1,9 @@
+name = "myrsu-mcp"
+main = "src/index-http.ts"
+compatibility_date = "2025-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# No observability / logs — keeps the privacy story clean.
+# (No data retention beyond Cloudflare's per-request anti-abuse needs.)
+[observability]
+enabled = false

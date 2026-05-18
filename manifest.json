@@ -1,0 +1,54 @@
+{
+  "manifest_version": "0.3",
+  "name": "myrsu-mcp",
+  "display_name": "MyRSU — Concentration Risk Analyzer",
+  "version": "0.3.0",
+  "description": "Single-company concentration risk analysis for tech workers with RSU comp. Risk score, action items, and historical drawdowns — all browser-local, no data leaves your machine.",
+  "long_description": "MyRSU lets your AI assistant answer the question every tech worker quietly worries about: **how concentrated is my wealth in my employer's stock?**\n\nWhen you ask Claude about your RSU situation, this extension lets Claude run a real calculation — concentration percentage, Wealth-at-Risk, recommended max allocation, diversification gap, and a prioritized action plan. It also surfaces historical drawdowns for 40+ tech employers (NVDA, TSLA, MSFT, GOOGL, META, AAPL, AMZN, and many more) to ground the abstract numbers in real history.\n\n**Privacy-first:** The MCP server runs locally and is stateless. No data is stored, logged, or transmitted to any server. All calculations happen on your machine.\n\n**Companion to:** [myrsu.app](https://myrsu.app) — the free interactive web dashboard.\n\n## Tools\n\n- `myrsu_analyze_risk` — full risk analysis given any combination of wealth / income / employer inputs\n- `myrsu_get_employer` — quick lookup of σ, drawdowns, and recommended caps for 40+ tech employers\n\n## Example conversation\n\n> *I work at NVIDIA. I have about $700K in NVDA stock, $300K cash and ETFs, earn $250K/yr. Am I dangerously concentrated?*\n\nClaude calls `myrsu_analyze_risk` and responds with your Risk Score, the actions you should take, and the historical context (e.g., NVDA fell 66% in 2022 — what that would cost you today).",
+  "author": {
+    "name": "MyRSU",
+    "url": "https://myrsu.app"
+  },
+  "homepage": "https://myrsu.app",
+  "documentation": "https://github.com/myrsu/myrsu-mcp#readme",
+  "support": "https://github.com/myrsu/myrsu-mcp/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myrsu/myrsu-mcp"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "finance",
+    "rsu",
+    "concentration-risk",
+    "personal-finance",
+    "tech-comp",
+    "stock",
+    "myrsu"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/dist/index.js"]
+    }
+  },
+  "tools": [
+    {
+      "name": "myrsu_analyze_risk",
+      "description": "Calculate the Single-Company Risk Score (0-100) and full concentration analysis. Returns risk score, wealth-at-risk, diversification gap, top action items, historical drawdown context, and a pre-filled dashboard URL."
+    },
+    {
+      "name": "myrsu_get_employer",
+      "description": "Look up annual volatility (σ), historical drawdowns, and recommended max concentration cap for 40+ tech employer presets (NVDA, TSLA, MSFT, GOOGL, META, AAPL, AMZN, plus SaaS / cloud / semis / consumer / fintech / mobility)."
+    }
+  ],
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  }
+}

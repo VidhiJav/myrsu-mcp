@@ -1,0 +1,52 @@
+{
+  "name": "myrsu-mcp",
+  "version": "0.3.0",
+  "description": "MyRSU MCP server — concentration & exposure analysis for tech workers with RSU comp. Lets Claude / Cursor / Continue answer 'how risky is my company stock concentration?' with real numbers.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "myrsu-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "prepublishOnly": "npm run build",
+    "inspect": "npx @modelcontextprotocol/inspector node dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "rsu",
+    "concentration-risk",
+    "personal-finance",
+    "stock",
+    "claude",
+    "myrsu"
+  ],
+  "author": "MyRSU",
+  "license": "Apache-2.0",
+  "homepage": "https://myrsu.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/myrsu/myrsu-mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "wrangler": "^4.92.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
