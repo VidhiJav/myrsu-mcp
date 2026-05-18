@@ -18,7 +18,7 @@ import { analyzeRiskHandler, analyzeRiskInputSchema } from "./tools/analyze_risk
 import { getEmployerHandler, getEmployerInputSchema } from "./tools/get_employer.js";
 
 const SERVER_NAME = "myrsu-mcp";
-const SERVER_VERSION = "0.3.0";
+const SERVER_VERSION = "0.4.0";
 
 async function main(): Promise<void> {
   const server = new McpServer({
@@ -36,6 +36,7 @@ async function main(): Promise<void> {
         "Returns risk score, concentration %, wealth-at-risk, diversification gap, top action items, and a pre-filled dashboard URL. " +
         "Use this whenever someone describes their wealth, employer, and stock holdings and wants to know how risky their setup is. " +
         "All fields are optional except an employer (ticker OR explicit volatility), but the more inputs provided, the more accurate the analysis. " +
+        "International — pass `country` (US/IN/CA/UK/EU/AU/OTHER) to switch retirement-account terminology and currency symbol. The risk math is identical for all countries. " +
         "Stateless and privacy-first — no data leaves the local calculation.",
       inputSchema: analyzeRiskInputSchema,
     },

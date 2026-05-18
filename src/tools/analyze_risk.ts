@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import { analyzeRisk, type RiskInputs } from "../metrics.js";
+import { analyzeRisk, symbolForCountry, type RiskInputs, type CountryCode } from "../metrics.js";
 import { findCompany, type DrawdownEvent } from "../presets.js";
 
 // ---- Input schema (Zod) --------------------------------------------------
@@ -15,11 +15,11 @@ import { findCompany, type DrawdownEvent } from "../presets.js";
 // Defaults to 0 / undefined where missing.
 export const analyzeRiskInputSchema = {
   cash: z.number().nonnegative().optional()
-    .describe("Cash, savings, money market funds, CDs ($)."),
+    .describe("Cash, savings, money market funds, CDs (in the user's local currency)."),
   diversified_investments: z.number().nonnegative().optional()
     .describe("Taxable brokerage account: ETFs, index funds, bonds, OTHER companies' stocks. Non-retirement."),
   retirement_accounts: z.number().nonnegative().optional()
-    .describe("401(k), IRA, Roth IRA, etc. Counted full for Net Worth but discounted to 70% in the stress test (early-withdrawal penalty)."),
+    .describe("Retirement / tax-advantaged accounts: 401(k)/IRA (US), RRSP/TFSA (Canada), ISA/SIPP (UK), EPF/PPF/NPS (India), Superannuation (Australia), etc. Counted full for Net Worth but discounted to 70% in the stress test."),
   vested_company_stock: z.number().nonnegative().optional()
     .describe("Employer shares the user already owns outright ($, current market value)."),
   unvested_rsus: z.number().nonnegative().optional()
@@ -48,13 +48,19 @@ export const analyzeRiskInputSchema = {
     .describe("Affects how correlated the user's income is with the stock. Public company is the safer default."),
 
   federal_ltcg_pct: z.number().min(0).max(50).optional()
-    .describe("Federal long-term capital gains rate as a percent (e.g. 20). 15% is the most common bracket."),
+    .describe("National long-term capital gains rate as a percent (US: 15-20; UK basic: 10; UK higher: 20; India LTCG over ₹1L: 10; Canada: 50% inclusion × marginal rate; AU: marginal rate w/ 50% discount if held 12mo+)."),
   state_tax_pct: z.number().min(0).max(20).optional()
-    .describe("State capital gains tax rate as a percent. 0 in TX/FL/WA, ~13.3 in CA."),
+    .describe("Local/state/provincial capital gains tax rate as a percent. US: 0 in TX/FL/WA, ~13.3 in CA. Use 0 if your country has no sub-national capital gains tax."),
   cost_basis: z.number().nonnegative().optional()
     .describe("Average cost basis of vested stock (price the user acquired at)."),
   include_nii: z.boolean().optional()
-    .describe("Whether to include the 3.8% Net Investment Income surcharge (applies if AGI > $200K single / $250K married)."),
+    .describe("US-only: include the 3.8% Net Investment Income surcharge (applies if AGI > $200K single / $250K married). Leave false outside the US."),
+
+  // ---- Localization (terminology only — math is identical across countries) ----
+  country: z.enum(["US", "IN", "CA", "UK", "EU", "AU", "OTHER"]).optional()
+    .describe("Country code for response terminology. Affects retirement-account names referenced (401k vs RRSP vs ISA vs EPF vs Super), tax-aware diversification suggestions, and currency symbol. Default 'US'. The risk math is identical for all countries."),
+  currency_symbol: z.string().max(3).optional()
+    .describe("Override currency symbol for formatted output (e.g. '$', '₹', '€', '£', 'C$', 'A$'). If omitted, derived from `country` (US→$, IN→₹, UK→£, EU→€, CA→C$, AU→A$)."),
 };
 
 export type AnalyzeRiskInput = {
@@ -111,6 +117,8 @@ export async function analyzeRiskHandler(args: AnalyzeRiskInput) {
     stateTaxPct: args.state_tax_pct,
     costBasis: args.cost_basis,
     includeNII: args.include_nii,
+    country: args.country as CountryCode | undefined,
+    currencySymbol: args.currency_symbol,
   };
 
   const result = analyzeRisk(riskInputs);
@@ -127,7 +135,8 @@ export async function analyzeRiskHandler(args: AnalyzeRiskInput) {
   const dashboardUrl = buildDashboardUrl(riskInputs);
 
   // Human-readable summary for the AI to use in its reply
-  const summary = formatSummary(result, employerName, dashboardUrl, worstDrawdown, historicalLossUsd);
+  const cur = symbolForCountry(args.country as CountryCode | undefined, args.currency_symbol);
+  const summary = formatSummary(result, employerName, dashboardUrl, worstDrawdown, historicalLossUsd, cur);
 
   return {
     content: [{
@@ -191,9 +200,11 @@ function formatSummary(
   dashboardUrl: string,
   worstDrawdown: DrawdownEvent | null,
   historicalLossUsd: number,
+  cur: string,
 ): string {
   const co = employerName || "your employer";
   const concPct = Math.round(r.concentrationPct * 100);
+  const fmt = (n: number) => `${cur}${Math.round(n).toLocaleString()}`;
   const lines: string[] = [];
 
   // ---- Headline ----------------------------------------------------------
@@ -202,8 +213,8 @@ function formatSummary(
 
   // ---- Vivid framing (the gut-punch) -------------------------------------
   if (r.companyStock > 0 && r.netWorth > 0) {
-    lines.push(`**${concPct}% of your $${r.netWorth.toLocaleString()} net worth is in ${co}.** ` +
-               `A severe move on that stock could erase **$${r.wealthAtRiskUsd.toLocaleString()}** ` +
+    lines.push(`**${concPct}% of your ${fmt(r.netWorth)} net worth is in ${co}.** ` +
+               `A severe move on that stock could erase **${fmt(r.wealthAtRiskUsd)}** ` +
                `— most of what you have.`);
     lines.push("");
   }
@@ -211,22 +222,22 @@ function formatSummary(
   // ---- Historical reference (if we have data for this employer) ---------
   if (worstDrawdown && historicalLossUsd > 0) {
     lines.push(`**Historical reference:** ${co} fell ${Math.round(worstDrawdown.drop * 100)}% in ${worstDrawdown.year} (${worstDrawdown.label}). ` +
-               `A repeat today would cost you **$${historicalLossUsd.toLocaleString()}** of net worth ` +
-               `(your $${r.companyStock.toLocaleString()} stock → $${(r.companyStock - historicalLossUsd).toLocaleString()}, ` +
-               `net worth $${r.netWorth.toLocaleString()} → $${(r.netWorth - historicalLossUsd).toLocaleString()}).`);
+               `A repeat today would cost you **${fmt(historicalLossUsd)}** of net worth ` +
+               `(your ${fmt(r.companyStock)} stock → ${fmt(r.companyStock - historicalLossUsd)}, ` +
+               `net worth ${fmt(r.netWorth)} → ${fmt(r.netWorth - historicalLossUsd)}).`);
     lines.push("");
   }
 
   // ---- Key numbers (compact) --------------------------------------------
   lines.push("Key metrics:");
-  lines.push(`- Net Worth (computed): $${r.netWorth.toLocaleString()}`);
-  lines.push(`- Company stock: $${r.companyStock.toLocaleString()} (${(r.concentrationPct * 100).toFixed(1)}% of net worth)`);
-  lines.push(`- Recommended max: ${Math.round(r.recommendedMaxAllocationPct * 100)}% of net worth ($${r.recommendedExposureUsd.toLocaleString()})`);
+  lines.push(`- Net Worth (computed): ${fmt(r.netWorth)}`);
+  lines.push(`- Company stock: ${fmt(r.companyStock)} (${(r.concentrationPct * 100).toFixed(1)}% of net worth)`);
+  lines.push(`- Recommended max: ${Math.round(r.recommendedMaxAllocationPct * 100)}% of net worth (${fmt(r.recommendedExposureUsd)})`);
   if (r.diversificationGapUsd > 0) {
-    lines.push(`- Diversification gap: $${r.diversificationGapUsd.toLocaleString()} overweight (${Math.round(r.overweightPct * 100)}%)`);
+    lines.push(`- Diversification gap: ${fmt(r.diversificationGapUsd)} overweight (${Math.round(r.overweightPct * 100)}%)`);
   }
   if (r.estimatedYearsToSafe != null) {
-    lines.push(`- Estimated time to safe (at ~$100K/yr pace): ${r.estimatedYearsToSafe} years`);
+    lines.push(`- Estimated time to safe (at a typical diversification pace): ${r.estimatedYearsToSafe} years`);
   }
   if (r.crashJobLossRunwayMonths != null) {
     lines.push(`- Crash + job loss runway: ${r.crashJobLossRunwayMonths} months`);

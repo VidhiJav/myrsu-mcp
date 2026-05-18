@@ -8,23 +8,25 @@
 import { recommendedMaxAllocation } from "./presets.js";
 
 // ---- Inputs --------------------------------------------------------------
+export type CountryCode = "US" | "IN" | "CA" | "UK" | "EU" | "AU" | "OTHER";
+
 export interface RiskInputs {
-  // Wealth (one or more required, $)
+  // Wealth (one or more required, in the user's local currency)
   cash?: number;
   diversifiedInvestments?: number;   // taxable brokerage, ETFs, bonds, OTHER companies' stocks
-  retirementAccounts?: number;       // 401(k), IRA, Roth — discounted in stress test
+  retirementAccounts?: number;       // 401(k)/IRA/RRSP/EPF/ISA/Super etc. — discounted in stress test
   vestedCompanyStock?: number;
   unvestedRSUs?: number;
   homeValue?: number;                // gross market value, NOT equity
   otherAssets?: number;
 
-  // Liabilities ($)
+  // Liabilities
   mortgage?: number;
   studentLoans?: number;
   creditCardDebt?: number;
   otherDebt?: number;
 
-  // Income ($/yr)
+  // Income (/yr)
   employerIncome?: number;           // from your employer (incl. RSU vesting)
   otherIncome?: number;              // spouse, side, dividends from non-employer
 
@@ -34,10 +36,49 @@ export interface RiskInputs {
   employerType?: "public_company" | "high_growth_tech" | "startup";
 
   // Tax (optional)
-  federalLtcgPct?: number;           // e.g. 20 for 20%
-  stateTaxPct?: number;              // e.g. 13.3 for CA
+  federalLtcgPct?: number;           // national/federal long-term capital gains rate as a percent
+  stateTaxPct?: number;              // local/state/provincial cap-gains rate as a percent
   costBasis?: number;
-  includeNII?: boolean;
+  includeNII?: boolean;              // US-only 3.8% Net Investment Income surcharge
+
+  // Localization (optional — affects labels only, not math)
+  country?: CountryCode;             // default "US"
+  currencySymbol?: string;           // override symbol; default derives from country
+}
+
+// ---- Locale helpers ------------------------------------------------------
+export function symbolForCountry(country?: CountryCode, override?: string): string {
+  if (override) return override;
+  switch (country) {
+    case "IN": return "₹";
+    case "CA": return "C$";
+    case "UK": return "£";
+    case "EU": return "€";
+    case "AU": return "A$";
+    default:   return "$";
+  }
+}
+
+export function retirementAcctName(country?: CountryCode): string {
+  switch (country) {
+    case "IN": return "EPF/PPF/NPS";
+    case "CA": return "RRSP/TFSA";
+    case "UK": return "ISA/SIPP";
+    case "EU": return "tax-advantaged pension";
+    case "AU": return "Superannuation";
+    default:   return "401(k)/IRA";
+  }
+}
+
+function taxAwareDiversificationText(country?: CountryCode): string {
+  switch (country) {
+    case "IN": return "ELSS funds, NPS contributions, or stagger sales across financial years to use indexation / long-term capital gains thresholds";
+    case "CA": return "RRSP/TFSA contributions, donating appreciated stock, or staggering sales across years to manage marginal rates";
+    case "UK": return "ISA/SIPP allowances, the annual capital gains allowance, or gift-aiding shares directly";
+    case "EU": return "country-specific tax-advantaged pension contributions, holding 12+ months where reduced rates apply, or charitable giving of shares";
+    case "AU": return "salary-sacrificing into super, holding 12+ months for the capital gains discount, or charitable giving of shares";
+    default:   return "Donor-Advised Funds, exchange funds, or tax-loss harvesting elsewhere to offset";
+  }
 }
 
 // ---- Output --------------------------------------------------------------
@@ -114,6 +155,10 @@ function rhoFor(employerType?: RiskInputs["employerType"]): number {
 
 // ---- Main analysis -------------------------------------------------------
 export function analyzeRisk(inputs: RiskInputs): RiskResult {
+  // Locale (terminology only — math is identical across countries)
+  const cur = symbolForCountry(inputs.country, inputs.currencySymbol);
+  const fmt = (n: number) => `${cur}${Math.round(n).toLocaleString()}`;
+
   // Derive computed wealth
   const cash         = inputs.cash || 0;
   const diversified  = inputs.diversifiedInvestments || 0;
@@ -219,9 +264,9 @@ export function analyzeRisk(inputs: RiskInputs): RiskResult {
       priority,
       title: `Crash + Job Loss Stress Test: ${runwayLabel}`,
       summary: `If ${inputs.employerName || "your employer"} crashed 50% and you lost your job: ` +
-               `~$${Math.round(stressAvail).toLocaleString()} available ` +
-               `(after unvested RSU forfeit, retirement at 70%). ` +
-               `Mortgage burn ~$${monthlyEssentials.toLocaleString()}/mo. ` +
+               `~${fmt(stressAvail)} available ` +
+               `(after unvested RSU forfeit, ${retirementAcctName(inputs.country)} at 70%). ` +
+               `Mortgage burn ~${fmt(monthlyEssentials)}/mo. ` +
                `Runway: ${isFinite(runwayMonths) ? Math.floor(runwayMonths) + " months" : "unlimited"}.`,
     });
   }
@@ -230,17 +275,17 @@ export function analyzeRisk(inputs: RiskInputs): RiskResult {
   if (divGap > 0) {
     const proRataTax = taxOwed * (divGap / Math.max(vested, 1));
     const paceLine = estYearsToSafe != null
-      ? ` At ~$${Math.round(assumedPace).toLocaleString()}/yr diversification pace, this takes about ${estYearsToSafe} years.`
+      ? ` At ~${fmt(assumedPace)}/yr diversification pace, this takes about ${estYearsToSafe} years.`
       : "";
     const taxLine = proRataTax > 0
-      ? ` Estimated tax cost: ~$${Math.round(proRataTax).toLocaleString()} (at your provided rate).`
+      ? ` Estimated tax cost: ~${fmt(proRataTax)} (at your provided rate).`
       : (combinedTaxRate === 0
-          ? " Tax cost depends on your federal + state brackets — provide federal_ltcg_pct and state_tax_pct for a precise estimate."
+          ? " Tax cost depends on your local capital gains brackets — provide federal_ltcg_pct and state_tax_pct (or local equivalents) for a precise estimate."
           : "");
     actions.push({
       priority: divGap > netWorth * 0.2 ? "high" : "medium",
       title: "Reduce Single-Stock Exposure",
-      summary: `You are $${Math.round(divGap).toLocaleString()} overweight in ${inputs.employerName || "your company"}. ` +
+      summary: `You are ${fmt(divGap)} overweight in ${inputs.employerName || "your company"}. ` +
                `Sell down to the recommended ${Math.round(recMax * 100)}% cap for σ-${Math.round(sigma * 100)}% stocks.` +
                paceLine + taxLine,
     });
@@ -254,8 +299,8 @@ export function analyzeRisk(inputs: RiskInputs): RiskResult {
       priority: liqRatio < 0.1 ? "high" : "medium",
       title: "Build a Larger Liquid Buffer",
       summary: `You have ${Math.round(liqRatio * 100)}% of net worth liquid. ` +
-               `Aim for 25%+ ($${target.toLocaleString()}) before adding more concentration. ` +
-               `Gap to close: $${gap.toLocaleString()}.`,
+               `Aim for 25%+ (${fmt(target)}) before adding more concentration. ` +
+               `Gap to close: ${fmt(gap)}.`,
     });
   }
 
@@ -275,8 +320,8 @@ export function analyzeRisk(inputs: RiskInputs): RiskResult {
     actions.push({
       priority: "info",
       title: "Consider Tax-Aware Diversification",
-      summary: `You have ~$${Math.round(embeddedGain).toLocaleString()} in embedded gains on vested stock. ` +
-               `Explore Donor-Advised Funds, exchange funds, or tax-loss harvesting elsewhere to offset.`,
+      summary: `You have ~${fmt(embeddedGain)} in embedded gains on vested stock. ` +
+               `Explore ${taxAwareDiversificationText(inputs.country)}.`,
     });
   }
 

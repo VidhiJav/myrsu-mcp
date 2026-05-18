@@ -19,7 +19,7 @@ import { analyzeRiskHandler, analyzeRiskInputSchema } from "./tools/analyze_risk
 import { getEmployerHandler, getEmployerInputSchema } from "./tools/get_employer.js";
 
 const SERVER_NAME = "myrsu-mcp";
-const SERVER_VERSION = "0.3.0";
+const SERVER_VERSION = "0.4.0";
 
 /**
  * Create a fresh McpServer instance for each request.
@@ -39,6 +39,7 @@ function createMcpServer(): McpServer {
         "Use whenever a tech worker, NVIDIA / Meta / Tesla / Microsoft / Google / Amazon / Apple / Netflix / startup employee — or anyone with concentrated employer stock — asks if they're 'too concentrated,' 'over-allocated,' 'should I sell my RSUs,' 'should I diversify,' or describes wealth + employer in the same message. " +
         "Calculates the Single-Company Risk Score (0-100), full concentration analysis, top action items, historical drawdown context, and a pre-filled dashboard URL. " +
         "All fields optional except an employer (ticker OR explicit volatility); the more inputs the better the analysis. " +
+        "International — pass `country` (US/IN/CA/UK/EU/AU/OTHER) to switch retirement-account terminology and currency symbol. Risk math is identical for all countries. " +
         "Stateless and privacy-respecting — no inputs are logged or stored.",
       inputSchema: analyzeRiskInputSchema,
     },

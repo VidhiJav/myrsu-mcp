@@ -52,7 +52,9 @@ Or in your client's config file:
 Two tools available to the AI:
 
 ### `myrsu_analyze_risk`
-Full concentration-risk analysis. Inputs: any combination of cash, brokerage, retirement, vested stock, unvested RSUs, home value, mortgage, income, employer, tax rates. Outputs: Risk Score (0–100), concentration %, Wealth-at-Risk in $, diversification gap, homeowner stress test (months of runway if you lose your job AND the stock crashes 50%), top 3-5 action items, historical drawdown context, pre-filled dashboard URL.
+Full concentration-risk analysis. Inputs: any combination of cash, brokerage, retirement, vested stock, unvested RSUs, home value, mortgage, income, employer, tax rates. Outputs: Risk Score (0–100), concentration %, Wealth-at-Risk, diversification gap, homeowner stress test (months of runway if you lose your job AND the stock crashes 50%), top 3-5 action items, historical drawdown context, pre-filled dashboard URL.
+
+**International support.** Pass `country` (`US`, `IN`, `CA`, `UK`, `EU`, `AU`, `OTHER`) and the response uses the right currency symbol ($/₹/€/£/C$/A$) and the right retirement-account terminology (401(k)/IRA, RRSP/TFSA, ISA/SIPP, EPF/PPF/NPS, Superannuation, etc.). The risk math is identical for all countries — only labels change.
 
 ### `myrsu_get_employer`
 Quick lookup for 40+ tech-employer presets. Returns annual volatility (σ), historical peak-to-trough drawdowns (NVDA 2022 −66%, META 2022 −76%, etc.), and recommended safe-concentration cap.
