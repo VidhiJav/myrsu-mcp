@@ -34,7 +34,10 @@
   "homepage": "https://myrsu.app",
   "repository": {
     "type": "git",
-    "url": "https://github.com/myrsu/myrsu-mcp"
+    "url": "git+https://github.com/VidhiJav/myrsu-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VidhiJav/myrsu-mcp/issues"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
