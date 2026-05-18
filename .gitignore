@@ -7,6 +7,11 @@ dist/
 # Bundled extension artifact (regenerate with `mcpb pack`)
 *.mcpb
 
+# MCP Registry publisher CLI (download fresh when needed)
+mcp-publisher.exe
+mcp-publisher
+mcp-publisher.tar.gz
+
 # Cloudflare local dev cache
 .wrangler/
 
