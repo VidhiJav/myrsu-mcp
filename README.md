@@ -1,5 +1,9 @@
 # MyRSU MCP
 
+[![npm version](https://img.shields.io/npm/v/myrsu-mcp.svg)](https://www.npmjs.com/package/myrsu-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/myrsu-mcp.svg)](https://www.npmjs.com/package/myrsu-mcp)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 > An [MCP](https://modelcontextprotocol.io) server that lets your AI assistant analyze single-company concentration risk for tech workers with RSU comp.
 
 When you ask Claude *"I have $700K in NVDA stock — am I dangerously concentrated?"*, this server gives Claude **real numbers** instead of generic advice: a 0-100 Risk Score, your specific Wealth-at-Risk in dollars, historical drawdowns of your employer's stock, prioritized action items, and a pre-filled dashboard URL.
